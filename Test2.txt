@@ -1,3 +1,0 @@
-This is test to check git.
-this is a test to check jenkins update
-thank you.
