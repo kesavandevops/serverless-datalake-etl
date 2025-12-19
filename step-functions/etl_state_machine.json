@@ -1,5 +1,5 @@
 {
-  "Comment": "Serverless Sales Data Lake ETL Pipeline - Corrected",
+  "Comment": "Serverless Sales Data Lake ETL Pipeline",
   "StartAt": "StartRawCrawler",
   "States": {
     "StartRawCrawler": {
@@ -108,6 +108,7 @@
       "Parameters": {
         "Name": "sales-processed-crawler"
       },
+      "ResultPath": "$.processedCrawlerStartResult",
       "Retry": [
         {
           "ErrorEquals": [
@@ -139,6 +140,7 @@
       "Parameters": {
         "Name": "sales-processed-crawler"
       },
+      "ResultPath": "$.processedCrawlerStatus",
       "Retry": [
         {
           "ErrorEquals": [
@@ -163,7 +165,7 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.Crawler.State",
+          "Variable": "$.processedCrawlerStatus.Crawler.State",
           "StringEquals": "READY",
           "Next": "NotifySuccess"
         }
