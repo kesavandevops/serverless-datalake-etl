@@ -1,1 +1,192 @@
-
+{
+  "Comment": "Serverless Sales Data Lake ETL Pipeline - Corrected",
+  "StartAt": "StartRawCrawler",
+  "States": {
+    "StartRawCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "sales-raw-crawler"
+      },
+      "ResultPath": "$.rawCrawlerStartResult",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Glue.ConcurrentRunsExceededException"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "WaitForRawCrawler"
+    },
+    "WaitForRawCrawler": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "CheckRawCrawler"
+    },
+    "CheckRawCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "sales-raw-crawler"
+      },
+      "ResultPath": "$.rawCrawlerStatus",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 20,
+          "MaxAttempts": 5,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "RawCrawlerDecision"
+    },
+    "RawCrawlerDecision": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.rawCrawlerStatus.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "RunETLJob"
+        }
+      ],
+      "Default": "WaitForRawCrawler"
+    },
+    "RunETLJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "sales_raw_to_processed_etl",
+        "Arguments": {
+          "--S3_BUCKET.$": "$.detail.bucket.name",
+          "--S3_KEY.$": "$.detail.object.key"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "StartProcessedCrawler"
+    },
+    "StartProcessedCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "sales-processed-crawler"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Glue.ConcurrentRunsExceededException"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "WaitForProcessedCrawler"
+    },
+    "WaitForProcessedCrawler": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "CheckProcessedCrawler"
+    },
+    "CheckProcessedCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "sales-processed-crawler"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 20,
+          "MaxAttempts": 5,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "ProcessedCrawlerDecision"
+    },
+    "ProcessedCrawlerDecision": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "NotifySuccess"
+        }
+      ],
+      "Default": "WaitForProcessedCrawler"
+    },
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:ap-south-1:326052702112:sales-datalake-etl-notifications",
+        "Message": "✅ Sales Data Lake ETL completed successfully. Data is available in Athena."
+      },
+      "End": true
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:ap-south-1:326052702112:sales-datalake-etl-notifications",
+        "Message": "❌ Sales Data Lake ETL FAILED. Check Step Functions and CloudWatch logs."
+      },
+      "End": true
+    }
+  }
+}
