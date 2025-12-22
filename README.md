@@ -20,7 +20,7 @@ The design focuses on **incremental processing, deterministic execution, fault t
 5. **AWS Glue ETL (PySpark)** transforms raw CSV data into partitioned Parquet
 6. Transformed data is stored in the **Processed S3 bucket**
 7. **Amazon Athena** enables SQL-based analytics
-8. **Amazon SNS** sends success or failure notification
+8. **Amazon SNS** sends success or failure notifications
 
 ---
 
