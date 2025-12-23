@@ -176,7 +176,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
-        "TopicArn": "arn:aws:sns:ap-south-1:326052702112:sales-datalake-etl-notifications",
+        "TopicArn": "arn:aws:sns:{REGION}:{ACCOUNT-ID}:sales-datalake-etl-notifications",
         "Message": "✅ Sales Data Lake ETL completed successfully. Data is available in Athena."
       },
       "End": true
@@ -185,7 +185,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
-        "TopicArn": "arn:aws:sns:ap-south-1:326052702112:sales-datalake-etl-notifications",
+        "TopicArn": "arn:aws:sns:{REGION}:{ACCOUNT-ID}:sales-datalake-etl-notifications",
         "Message": "❌ Sales Data Lake ETL FAILED. Check Step Functions and CloudWatch logs."
       },
       "End": true
